@@ -1,3 +1,5 @@
+# explore KNN in ship risk predictions and machine learning training model brief explanation
+
 # Brief Explanantions of Data：
 
 - **Application to tackle Maritime issues**
@@ -16,7 +18,7 @@
   
   **3.Codes**
   
-  ```pyhton
+  ```python
   mport pandas as pd
   import numpy as n
   
@@ -93,19 +95,130 @@
   Notes: 0=Low Risk; 1=Standard Risk; 2=High Risk
   -------------------------------------------------------------------
   ```
-
+  
   Regarding Above, then we use KNN from SKlearn:
-
+  
   from sklearn.neighbors import KNeighborsClassifier
   KNN_classifier = KNeighborsClassifier(n_neighbors=10)
   KNN_classifier.fit(X_train,y_train)
-
+  
   y_predict = KNN_classifier.predict(predict_object)
-
+  
   ###array([0, 1, 1, 1, 1, 1, 1, 1, 0, 2], dtype=int64)==>seems prdiction result is better!
+  
+  4.In pratice, how we value the prediction, it's accurate? or we have enough confidence to say 'that's the perfect model' ? Shall we use it for our new dataset predictions or not? Besieds, we shall ponder, time to time, if prediction is wrong: mistakes 0 to 1 or to 2, it seems to be accepted by PSC officer, however, 2 to 0 or 1, which will be a disaster, right? Because we miss the high risk vessels!
 
+# Valuation of the model
+
+accuracy_score:
+
+```python
+import numpy as np
+
+def accuracy_score(y_true, y_predict):
+    '''calculation accuracy rate between y_true and y_predict'''
+    assert y_true.shape[0] == y_predict.shape[0], \
+        "the size of y_true must be equal to the size of y_predict"
+
+    return sum(y_true == y_predict) / len(y_true)
 ```
-4.So, it's interesting, right? We, ourselves figure out simple codes to do a prediction for our risk of ship basis on dataset of PSC records. Next, let's tink it over some questions as a maritime veteran:
 
-In pratice, how we value the prediction, it's accurate? or we have enough confidence to say 'that's the perfect model' ? Shall we use it for our new dataset predictions or not? Besieds, we shall ponder, time to time, if prediction is wrong: mistakes 0 to 1 or to 2, it seems to be accepted by PSC officer, however, 2 to 0 or 1, which will be a disaster, right? Because we miss the high risk vessels!!
+# Feature Scaling
+
+- StandardScaler
+
+- MinMaxScaler
+
+please see the documentation, but we can do it via Pipeline, it's more easy and  it could be associated with feature engineering.
+
+# Tuning parameters
+
+- search the best K
+
+```python
+best_score = 0.0
+best_k = -1
+for k in range(1, 11):
+    knn_clf = KNeighborsClassifier(n_neighbors=k)
+    knn_clf.fit(X_train, y_train)
+    score = knn_clf.score(X_test, y_test)
+    if score > best_score:
+        best_k = k
+        best_score = score
+
+print("best_k =", best_k)
+print("best_score =", best_score)
+```
+
+- search the weights
+
+```python
+best_score = 0.0
+best_k = -1
+best_method = ""
+for method in ["uniform", "distance"]:
+    for k in range(1, 11):
+        knn_clf = KNeighborsClassifier(n_neighbors=k, weights=method)
+        knn_clf.fit(X_train, y_train)
+        score = knn_clf.score(X_test, y_test)
+        if score > best_score:
+            best_k = k
+            best_score = score
+            best_method = method
+
+print("best_method =", best_method)
+print("best_k =", best_k)
+print("best_score =", best_score)
+```
+
+- search the best distance calculation format
+
+```python
+best_score = 0.0
+best_k = -1
+best_p = -1
+
+for k in range(1, 11):
+    for p in range(1, 6):
+        knn_clf = KNeighborsClassifier(n_neighbors=k, weights="distance", p=p)
+        knn_clf.fit(X_train, y_train)
+        score = knn_clf.score(X_test, y_test)
+        if score > best_score:
+            best_k = k
+            best_p = p
+            best_score = score
+
+print("best_k =", best_k)
+print("best_p =", best_p)
+print("best_score =", best_score)
+```
+
+- p=1：Manhattan distance(曼哈顿距离)
+- p=2：Euclidean distance（欧氏距离）
+- p=infinite：Chebyshev distance（切比雪夫距离）
+
+Therefore, if we want to use one model accurately, we shall get the best knowledge of its parameters to make sure which one is the best, in scikit learn, we have two main method to gid out the best parameter to make our model the best, which are grid search and radom search.
+
+- Grid Search
+
+```python
+param_grid = [
+    {
+        'weights': ['uniform'], 
+        'n_neighbors': [i for i in range(1, 11)]
+    },
+    {
+        'weights': ['distance'],
+        'n_neighbors': [i for i in range(1, 11)], 
+        'p': [i for i in range(1, 6)]
+    }
+]
+
+knn_clf = KNeighborsClassifier()
+
+from sklearn.model_selection import GridSearchCV
+
+grid_search = GridSearchCV(knn_clf, param_grid)
+
+grid_search.fit(X_train, y_train)
 ```
